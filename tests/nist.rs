@@ -1,4 +1,4 @@
-use hex::decode;
+use hex::{decode, encode};
 use nom::{
     bytes::complete::tag,
     character::complete::{digit1, hex_digit1, line_ending},
@@ -46,8 +46,10 @@ fn vector_lines(s: &str) -> IResult<&str, TestVector> {
 
     assert_eq!(md.len(), 32);
 
-    let vector = TestVector { msg: msg, md: md };
-    // println!("Parsed Vector: {:?}", vector);
+    let mut vector = TestVector { msg: msg, md: md };
+    if len == 0 {
+        vector.msg = vec![];
+    }
     Ok((s, vector))
 }
 
@@ -84,7 +86,6 @@ impl TestVector {
         assert_eq!(32, digest_len);
         assert!(s.is_empty());
 
-        println!("Successfully parsed {} test vectors!", digest_len);
         Ok((s, vector_list))
     }
 }
@@ -141,7 +142,14 @@ MD = 3c593aa539fdcdae516cdf2f15000f6634185c88f505b39775fb9ab137a10aa2\n";
             .1;
 
         for v in vectors {
-            assert_eq!(Hasher::hash(&v.msg)[..], v.md);
+            let hash = Hasher::hash(&v.msg);
+            assert_eq!(
+                hash[..],
+                v.md,
+                "\nExpected:\t{}\nGot:\t\t{}\n",
+                encode(&v.md),
+                encode(&hash)
+            );
         }
     }
 
@@ -155,7 +163,14 @@ MD = 3c593aa539fdcdae516cdf2f15000f6634185c88f505b39775fb9ab137a10aa2\n";
             .1;
 
         for v in vectors {
-            assert_eq!(Hasher::hash(&v.msg)[..], v.md);
+            let hash = Hasher::hash(&v.msg);
+            assert_eq!(
+                hash[..],
+                v.md,
+                "\nExpected:\t{}\nGot:\t\t{}\n",
+                encode(&v.md),
+                encode(&hash)
+            );
         }
     }
 }
