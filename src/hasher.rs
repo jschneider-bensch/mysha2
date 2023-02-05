@@ -29,7 +29,7 @@ impl Hasher {
     /// Initialize a new SHA2-256 Hasher using the FIPS 180-4 specified values.
     pub fn new() -> Self {
         Self {
-            state: INITIAL_VALUES.clone(),
+            state: INITIAL_VALUES,
             num_bytes_read: 0,
             working_block: vec![],
         }
@@ -207,9 +207,9 @@ impl Hasher {
     fn message_schedule(&self) -> [u32; 64] {
         use byteorder::{BigEndian, ReadBytesExt};
         let mut w = [0; 64];
-        for j in 0..16 {
-            // fill first 16 words with the message buffer
-            w[j] = self
+
+        for (j, wj) in w.iter_mut().enumerate().take(16) {
+            *wj = self
                 .working_block
                 .as_slice()
                 .get(j * 4..(j + 1) * 4)
@@ -226,5 +226,11 @@ impl Hasher {
                 .wrapping_add(w[j - 16]);
         }
         w
+    }
+}
+
+impl Default for Hasher {
+    fn default() -> Self {
+        Self::new()
     }
 }
