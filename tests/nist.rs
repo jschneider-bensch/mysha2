@@ -90,6 +90,46 @@ impl TestVector {
     }
 }
 
+fn seed_line(s: &str) -> IResult<&str, Vec<u8>> {
+    delimited(
+        tag("Seed = "),
+        map_res(many1(hex_digit1), |s: Vec<&str>| decode(s.concat())),
+        line_ending,
+    )(s)
+}
+
+fn count_line(s: &str) -> IResult<&str, usize> {
+    delimited(
+        tag("COUNT = "),
+        map_res(many1(digit1), |s: Vec<&str>| usize::from_str(&s.concat())),
+        line_ending,
+    )(s)
+}
+
+fn checkpoint_lines(s: &str) -> IResult<&str, Vec<u8>> {
+    let (s, _) = count_line(s)?;
+    let (s, md) = md_line(s)?;
+
+    assert_eq!(md.len(), 32);
+
+    Ok((s, md))
+}
+
+fn parse_checkpoints(input_file: &str) -> IResult<&str, (Vec<u8>, Vec<Vec<u8>>)> {
+    let (s, _) = many1(comment_line)(input_file)?;
+    let (s, _) = line_ending(s)?;
+    let (s, digest_len) = digest_len_line(s)?;
+    let (s, _) = line_ending(s)?;
+    let (s, seed) = seed_line(s)?;
+    let (s, _) = line_ending(s)?;
+    let (s, checkpoints) = many1(terminated(checkpoint_lines, line_ending))(s)?;
+
+    assert_eq!(32, digest_len);
+    assert!(s.is_empty());
+
+    Ok((s, (seed, checkpoints)))
+}
+
 #[cfg(test)]
 mod test_nist {
     use super::*;
@@ -172,5 +212,34 @@ MD = 3c593aa539fdcdae516cdf2f15000f6634185c88f505b39775fb9ab137a10aa2\n";
                 encode(&hash)
             );
         }
+    }
+
+    #[test]
+    fn nist_monte_carlo() {
+        use mysha2::hasher::Hasher;
+
+        let vector_file = include_str!("data/SHA256Monte.rsp");
+        let (seed, checkpoints) = parse_checkpoints(vector_file)
+            .expect("Malformed Vector file?")
+            .1;
+
+        let mut computed_checkpoints = vec![];
+        let mut j_initial = seed;
+        for _ in 0..100 {
+            let mut mds = [j_initial.clone(), j_initial.clone(), j_initial.clone()];
+
+            for _ in 3..1003 {
+                let msg = mds.clone().concat();
+                let mdi = Hasher::hash(&msg);
+
+                mds[0] = mds[1].clone();
+                mds[1] = mds[2].clone();
+                mds[2] = mdi;
+            }
+
+            j_initial = mds[2].clone();
+            computed_checkpoints.push(mds[2].clone());
+        }
+        assert_eq!(checkpoints, computed_checkpoints);
     }
 }
