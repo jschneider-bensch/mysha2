@@ -21,7 +21,7 @@ fn len_line(s: &str) -> IResult<&str, usize> {
 fn msg_line(s: &str) -> IResult<&str, Vec<u8>> {
     delimited(
         tag("Msg = "),
-        map_res(many1(hex_digit1), |s: Vec<&str>| decode(&s.concat())),
+        map_res(many1(hex_digit1), |s: Vec<&str>| decode(s.concat())),
         line_ending,
     )(s)
 }
@@ -29,7 +29,7 @@ fn msg_line(s: &str) -> IResult<&str, Vec<u8>> {
 fn md_line(s: &str) -> IResult<&str, Vec<u8>> {
     delimited(
         tag("MD = "),
-        map_res(many1(hex_digit1), |s: Vec<&str>| decode(&s.concat())),
+        map_res(many1(hex_digit1), |s: Vec<&str>| decode(s.concat())),
         line_ending,
     )(s)
 }
@@ -46,7 +46,7 @@ fn vector_lines(s: &str) -> IResult<&str, TestVector> {
 
     assert_eq!(md.len(), 32);
 
-    let mut vector = TestVector { msg: msg, md: md };
+    let mut vector = TestVector { msg, md };
     if len == 0 {
         vector.msg = vec![];
     }
@@ -129,7 +129,7 @@ mod test_nist {
 Msg = 451101250ec6f26652249d59dc974b7361d571a8101cdfd36aba3b5854d3ae086b5fdd4597721b66e3c0dc5d8c606d9657d0e323283a5217d1f53f2f284f57b85c8a61ac8924711f895c5ed90ef17745ed2d728abd22a5f7a13479a462d71b56c19a74a40b655c58edfe0a188ad2cf46cbf30524f65d423c837dd1ff2bf462ac4198007345bb44dbb7b1c861298cdf61982a833afc728fae1eda2f87aa2c9480858bec
 MD = 3c593aa539fdcdae516cdf2f15000f6634185c88f505b39775fb9ab137a10aa2\n";
 
-        assert_eq!(vector_lines(&text).unwrap().1, TestVector{msg: decode("451101250ec6f26652249d59dc974b7361d571a8101cdfd36aba3b5854d3ae086b5fdd4597721b66e3c0dc5d8c606d9657d0e323283a5217d1f53f2f284f57b85c8a61ac8924711f895c5ed90ef17745ed2d728abd22a5f7a13479a462d71b56c19a74a40b655c58edfe0a188ad2cf46cbf30524f65d423c837dd1ff2bf462ac4198007345bb44dbb7b1c861298cdf61982a833afc728fae1eda2f87aa2c9480858bec").unwrap(), md: decode("3c593aa539fdcdae516cdf2f15000f6634185c88f505b39775fb9ab137a10aa2").unwrap()})
+        assert_eq!(vector_lines(text).unwrap().1, TestVector{msg: decode("451101250ec6f26652249d59dc974b7361d571a8101cdfd36aba3b5854d3ae086b5fdd4597721b66e3c0dc5d8c606d9657d0e323283a5217d1f53f2f284f57b85c8a61ac8924711f895c5ed90ef17745ed2d728abd22a5f7a13479a462d71b56c19a74a40b655c58edfe0a188ad2cf46cbf30524f65d423c837dd1ff2bf462ac4198007345bb44dbb7b1c861298cdf61982a833afc728fae1eda2f87aa2c9480858bec").unwrap(), md: decode("3c593aa539fdcdae516cdf2f15000f6634185c88f505b39775fb9ab137a10aa2").unwrap()})
     }
 
     #[test]
